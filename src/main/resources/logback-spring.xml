@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty scope="context" name="appName" source="spring.application.name" />
+    <springProperty scope="context" name="profileActive" source="spring.profiles.active" />
+
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS}, [%thread], %highlight(%-5level), %green(%logger{96} %line) , %red(%X{trackId}) - %msg%n"/>
+    <property name="LOG_PATH" value="logs/${appName}"/>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE_INFO" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>TRACE</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <FileNamePattern>${LOG_PATH}/info.%d{yyyy-MM-dd}.log</FileNamePattern>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE_ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <FileNamePattern>${LOG_PATH}/error.%d{yyyy-MM-dd}.log</FileNamePattern>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+
+    <springProfile name="dev">
+        <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+            <!-- 这是是logstash服务器地址 端口-->
+            <destination>127.0.0.1:8088</destination>
+            <!-- 保活探测 -->
+            <keepAliveDuration>5 minutes</keepAliveDuration>
+            <!--输出的格式，推荐使用这个-->
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <pattern>
+                        <pattern>
+                            {
+                            "environment":"${profileActive}",
+                            "server":"${appName}",
+                            "create_time": "%d{yyyy-MM-dd HH:mm:ss.SSS}",
+                            "thread": "%thread",
+                            "log_level": "%-5level",
+                            "log_code_address": "%logger{96} %line",
+                            "trackId": "%X{trackId}",
+                            "userId":"%X{userId}",
+                            "corpId":"%X{corpId}",
+                            "path":"%X{path}",
+                            "elapsed":"%X{elapsed}",
+                            "exceptionFirstLine": "%ex{0}",
+                            "message":"%msg%n %rEx%n"
+                            }
+                        </pattern>
+                    </pattern>
+                </providers>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <springProfile name="dev">
+        <root level="INFO">
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="LOGSTASH"/>
+        </root>
+        <logger name="com.example" level="DEBUG" additivity="false">
+            <appender-ref ref="STDOUT"/>
+        </logger>
+
+    </springProfile>
+
+
+    <springProfile name="test,gray,prod">
+        <logger name="com.example" level="DEBUG" additivity="false">
+            <appender-ref ref="FILE_INFO"/>
+            <appender-ref ref="FILE_ERROR"/>
+            <appender-ref ref="LOGSTASH"/>
+        </logger>
+        <root level="INFO">
+            <appender-ref ref="FILE_INFO"/>
+            <appender-ref ref="FILE_ERROR"/>
+            <appender-ref ref="LOGSTASH"/>
+        </root>
+    </springProfile>
+
+</configuration>

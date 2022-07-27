@@ -1,0 +1,6 @@
+FROM java:1.8.0_131-jre
+ENV LANG C.UTF-8
+ENV TZ Asia/Shanghai
+mvn clean install
+COPY target/remote-demo-0.0.1-SNAPSHOT.jar /
+ENTRYPOINT java -Xms512M -Xmx512M -Xss512k -Xmn64M -jar /remote-demo-0.0.1-SNAPSHOT.jar

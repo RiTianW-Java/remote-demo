@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: remote-demo
+  profiles:
+    active: dev
+  redis:
+    host: 139.224.30.26
+    port: 6379
